@@ -31,21 +31,14 @@ public:
 	Array<Colour, CriticalSection> outColors;
     
     Array<float> outWhites;
+    Array<float> outLimes;
 
 	std::unique_ptr<ColorSource> prevColorSource; //for transitionning
 	std::unique_ptr<ColorSource> colorSource;
 
 	std::unique_ptr<PixelShape> pixelShape;
-    
-//    std::array<float, 4> thisRGBA;
-//    std::array<float, 4> thisRGBW;
-//    std::array<float, 4> thisRGBL;
-    
-    var thisRGBA;
-    var thisRGBW;
-    var thisRGBL;
 
-	enum ColorMode { RGB, RGBW, WRGB, RGBAW, RGBWA, CMY, HS, MODES_MAX };
+	enum ColorMode { RGB, RGBW, WRGB, RGBAW, RGBWA, CMY, HS, RGBL, MODES_MAX };
 	const int colorModeIndices[MODES_MAX][5] = {
 		{ 0, 1, 2, -1, -1},
 		{ 0, 1, 2, 3, -1 },
@@ -53,7 +46,8 @@ public:
 		{ 0, 1, 2, 4, 3 },
 		{ 0, 1, 2, 3, 4 },
 		{ 0, 1, 2, -1, -1},
-		{ 0, 1, -1, -1, -1}
+		{ 0, 1, -1, -1, -1},
+        { 0, 1, 2, 3, -1 }
 	};
 
 	enum FineMode { None, Alternate, Follow };
@@ -62,8 +56,9 @@ public:
 	EnumParameter* colorMode;
 	FloatParameter* whiteTemperature;
     
-    BoolParameter* useManualWhiteComponent;
+    BoolParameter* useManualColorComponent;
     FloatParameter* manualWhiteComponent;
+    FloatParameter* manualLimeComponent;
 
 	ColorParameter* mainColor; //fake computed parameter for viz
 

@@ -22,18 +22,20 @@ ColorComponent::ColorComponent(Object* o, var params) :
 	useDimmerForOpacity = addBoolParameter("Use Dimmer for Opacity", "If checked, use the dimmer component for color opacity", false);
 
 	colorMode = addEnumParameter("Color Mode", "Color mode for this object");
-	colorMode->addOption("RGB", RGB)->addOption("RGBW", RGBW)->addOption("WRGB", WRGB)->addOption("RGBAW", RGBAW)->addOption("RGBWA", RGBWA)->addOption("CMY", CMY)->addOption("Hue-Saturation", HS);
-    
-    useManualWhiteComponent = addBoolParameter("Manual mode", "If checked, you can use the manual white color value", false);
-    
-    manualWhiteComponent = addFloatParameter("White value", "Manual white color value (undeducted from RGB)", 0, 0, 255);
-    //manualWhiteComponent->unitSteps = 1.0f / 1;
+	colorMode->addOption("RGB", RGB)->addOption("RGBW", RGBW)->addOption("WRGB", WRGB)->addOption("RGBAW", RGBAW)->addOption("RGBWA", RGBWA)->addOption("CMY", CMY)->addOption("Hue-Saturation", HS)->addOption("RGB+Lime", RGBL);
 
 	fineMode = addEnumParameter("Fine Mode", "Fine Color Mode for this object. None means not using fine channels. Alternate means R/R fine, G/G fine, etc. Follow means R/G/B/R fine/G fine/ B fine, etc.");
 	fineMode->addOption("None", None)->addOption("Alternate", Alternate)->addOption("Follow", Follow);
-
-	whiteTemperature = addFloatParameter("White Temperature", "Temperature of the white color in Kelvin", 6500, 2000, 12000);
-	whiteTemperature->unitSteps = 1.0f / 100;
+    
+    useManualColorComponent = addBoolParameter("Manual mode", "If checked, you can use the manual white color value", false);
+    
+    manualWhiteComponent = addFloatParameter("White value", "Manual white color value (undeducted from RGB)", 0, 0, 255);
+    //manualWhiteComponent->unitSteps = 1.0f / 1;
+    
+    whiteTemperature = addFloatParameter("White Temperature", "Temperature of the white color in Kelvin", 6500, 2000, 12000);
+    whiteTemperature->unitSteps = 1.0f / 100;
+    
+    manualLimeComponent = addFloatParameter("Lime value", "Manual lime color value (undeducted from RGB)", 0, 0, 255);
 
 	mainColor = (ColorParameter*)addComputedParameter(new ColorParameter("Main Color", "Computed main color, not used to send DMX but for feedback", Colours::black), nullptr, false);
 	mainColor->setControllableFeedbackOnly(true);
@@ -176,9 +178,13 @@ void ColorComponent::updateComputedValues(HashMap<Parameter*, var>& values)
             
             // white
             col.append((float)manualWhiteComponent->getValue() / 255 * mult);
+            
+            // lime
+            col.append((float)manualLimeComponent->getValue() / 255 * mult);
 
 			outColors.set(i, Colour::fromFloatRGBA(col[0], col[1], col[2], col[3]));
             outWhites.set(i, col[4]);
+            outLimes.set(i, col[5]);
 		}
 	}
 
@@ -207,7 +213,7 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 		FineMode fm = fineMode->getValueDataAsEnum<FineMode>();
         
-        bool umwc = useManualWhiteComponent->getValue();
+        bool umcc = useManualColorComponent->getValue();
         //float mwc = manualWhiteComponent->getValue();
 
 		int colorSize = 3;
@@ -220,7 +226,8 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 		case RGBW:
 		case WRGB:
-                colorSize = 4;
+        case RGBL:
+            colorSize = 4;
 			break;
                 
         case RGBAW:
@@ -257,7 +264,7 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 			case RGBW:
 			case WRGB:
-                if (umwc)
+                if (umcc)
                 {
                     c = ColorHelpers::getRGB(outColors[i]);
                     
@@ -275,7 +282,7 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 			case RGBAW:
 			case RGBWA:
-                if (umwc) {
+                if (umcc) {
                     c = ColorHelpers::getRGB(outColors[i]);
                     c.append(outWhites[i]);
                 }
@@ -291,6 +298,11 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 				c.append(1 - outColors[i].getFloatGreen());
 				c.append(1 - outColors[i].getFloatBlue());
 				break;
+                    
+            case RGBL:
+                c = ColorHelpers::getRGB(outColors[i]);
+                c.append(outLimes[i]);
+                break;
 
 			default:
 				c.append(outColors[i].getFloatRed());
