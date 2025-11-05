@@ -18,6 +18,9 @@ public:
     static void init();
     static Colour getColorForTemperature(float temperature);
 
+    static var getRGB(Colour val);
+    static var getRGBA(Colour val);
+    static var getWFromRGB(Colour val, float temperature);
     static var getRGBWFromRGB(Colour val, float temperature);
     static var getRGBWAFromRGB(Colour val, float temperature);
 };

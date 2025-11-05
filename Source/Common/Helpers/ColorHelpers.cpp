@@ -140,6 +140,71 @@ Colour ColorHelpers::getColorForTemperature(float temperature)
 	return temperatureColorMap[temp];
 }
 
+var ColorHelpers::getRGB(Colour col)
+{
+    float r = col.getFloatRed();
+    float g = col.getFloatGreen();
+    float b = col.getFloatBlue();
+    
+    var result;
+    result.append(r);
+    result.append(g);
+    result.append(b);
+    
+    return result;
+}
+
+var ColorHelpers::getRGBA(Colour col)
+{
+    float r = col.getFloatRed();
+    float g = col.getFloatGreen();
+    float b = col.getFloatBlue();
+    float a = col.getFloatAlpha();
+    
+    var result;
+    result.append(r);
+    result.append(g);
+    result.append(b);
+    result.append(a);
+    
+    return result;
+}
+
+var ColorHelpers::getWFromRGB(Colour col, float temperature)
+{
+    Colour tempColor = getColorForTemperature(temperature);
+
+    float r = col.getFloatRed();
+    float g = col.getFloatGreen();
+    float b = col.getFloatBlue();
+
+    float tempRed = tempColor.getFloatRed();
+    float tempGreen = tempColor.getFloatGreen();
+    float tempBlue = tempColor.getFloatBlue();
+
+    // Calculate all of the color's white values corrected taking into account the white color temperature.
+    float wRed = r / tempRed;
+    float wGreen = g / tempGreen;
+    float wBlue = b / tempBlue;
+
+    // Determine the smallest white value from above.
+    float wMin = jmin(wRed, wGreen, wBlue);
+
+    // Make the color with the smallest white value to be the output white value
+    float wOut;
+    if (wMin == wRed)
+        wOut = r;
+    else if (wMin == wGreen)
+        wOut = g;
+    else
+        wOut = b;
+
+    var result;
+    result.append(wOut);
+
+    return result;
+}
+
 var ColorHelpers::getRGBWFromRGB(Colour col, float temperature)
 {
 	Colour tempColor = getColorForTemperature(temperature);
@@ -179,7 +244,7 @@ var ColorHelpers::getRGBWFromRGB(Colour col, float temperature)
 	result.append(gOut);
 	result.append(bOut);
 	result.append(wOut);
-	result.append(0);
+//	result.append(0);
 
 	return result;
 }
@@ -191,6 +256,7 @@ var ColorHelpers::getRGBWAFromRGB(Colour col, float temperature)
 	float r = col.getFloatRed();
 	float g = col.getFloatGreen();
 	float b = col.getFloatBlue();
+    float a = col.getFloatAlpha();
 
 	float tempRed = tempColor.getFloatRed();
 	float tempGreen = tempColor.getFloatGreen();
@@ -208,6 +274,7 @@ var ColorHelpers::getRGBWAFromRGB(Colour col, float temperature)
 	float wb = b - wOut * tempBlue;
 
 	float aOut = wr;
+    //float aOut = a;
 	if (aOut > wg * 2) aOut = wg * 2;
 	float rOut = wr - aOut;
 	float gOut = wg - aOut / 2;

@@ -23,6 +23,11 @@ ColorComponent::ColorComponent(Object* o, var params) :
 
 	colorMode = addEnumParameter("Color Mode", "Color mode for this object");
 	colorMode->addOption("RGB", RGB)->addOption("RGBW", RGBW)->addOption("WRGB", WRGB)->addOption("RGBAW", RGBAW)->addOption("RGBWA", RGBWA)->addOption("CMY", CMY)->addOption("Hue-Saturation", HS);
+    
+    useManualWhiteComponent = addBoolParameter("Manual mode", "If checked, you can use the manual white color value", false);
+    
+    manualWhiteComponent = addFloatParameter("White value", "Manual white color value (undeducted from RGB)", 0, 0, 255);
+    //manualWhiteComponent->unitSteps = 1.0f / 1;
 
 	fineMode = addEnumParameter("Fine Mode", "Fine Color Mode for this object. None means not using fine channels. Alternate means R/R fine, G/G fine, etc. Follow means R/G/B/R fine/G fine/ B fine, etc.");
 	fineMode->addOption("None", None)->addOption("Alternate", Alternate)->addOption("Follow", Follow);
@@ -94,7 +99,7 @@ void ColorComponent::setupFromJSONDefinition(var definition)
 
 	pixelShape->loadJSONData(shapeData);
 
-	String defaultSource = definition.getProperty("defaultSource", "Solid Color");
+	String defaultSource = definition.getProperty("defaultSource", "colo");
 	setupSource(defaultSource);
 
 	update();
@@ -106,6 +111,7 @@ void ColorComponent::update()
 	{
 		sourceColors.resize(resolution->intValue());
 		outColors.resize(resolution->intValue());
+        outWhites.resize(resolution->intValue());
 	}
 
 	if (colorSource != nullptr) colorSource->fillColorsForObject(sourceColors, object, this);
@@ -145,6 +151,7 @@ void ColorComponent::updateComputedValues(HashMap<Parameter*, var>& values)
 		zeroVal.append(0);
 		colValues.getArray()->fill(zeroVal);
 		outColors.fill(Colours::black);
+        // outWhites
 	}
 	else
 	{
@@ -166,8 +173,12 @@ void ColorComponent::updateComputedValues(HashMap<Parameter*, var>& values)
 			col.append((float)colValues[i][1] * mult);
 			col.append((float)colValues[i][2] * mult);
 			col.append((float)colValues[i][3] * mult);
+            
+            // white
+            col.append((float)manualWhiteComponent->getValue() / 255 * mult);
 
 			outColors.set(i, Colour::fromFloatRGBA(col[0], col[1], col[2], col[3]));
+            outWhites.set(i, col[4]);
 		}
 	}
 
@@ -195,6 +206,9 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 		const int* indices = colorModeIndices[(int)cm];
 
 		FineMode fm = fineMode->getValueDataAsEnum<FineMode>();
+        
+        bool umwc = useManualWhiteComponent->getValue();
+        //float mwc = manualWhiteComponent->getValue();
 
 		int colorSize = 3;
 
@@ -206,8 +220,13 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 		case RGBW:
 		case WRGB:
-			colorSize = 4;
+                colorSize = 4;
 			break;
+                
+        case RGBAW:
+        case RGBWA:
+            colorSize = 5;
+            break;
 
 		default:
 			colorSize = 3;
@@ -238,12 +257,33 @@ void ColorComponent::fillInterfaceDataInternal(Interface* i, var data, var param
 
 			case RGBW:
 			case WRGB:
-				c = ColorHelpers::getRGBWFromRGB(outColors[i], temp);
+                if (umwc)
+                {
+                    c = ColorHelpers::getRGB(outColors[i]);
+                    
+                    // append manual white component
+                    c.append(outWhites[i]);
+                }
+                else
+                    c = ColorHelpers::getRGBWFromRGB(outColors[i], temp);
+                    
+                    //c = ColorHelpers::getRGB(outColors[i]);
+                    //c.append(outColors[i].getPerceivedBrightness());
+                    //c.append(outColors[i].getLightness());
+                    
 				break;
 
 			case RGBAW:
 			case RGBWA:
-				c = ColorHelpers::getRGBWAFromRGB(outColors[i], temp);
+                if (umwc) {
+                    c = ColorHelpers::getRGB(outColors[i]);
+                    c.append(outWhites[i]);
+                }
+                
+                else c = ColorHelpers::getRGBWFromRGB(outColors[i], temp);
+                    
+                c.append(outColors[i].getFloatAlpha());
+                    
 				break;
 
 			case CMY:
